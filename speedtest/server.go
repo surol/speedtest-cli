@@ -33,7 +33,18 @@ func (ss *Servers) Len() int {
 }
 
 func (ss *Servers) Less(i, j int) bool {
-	return ss.List[i].Distance < ss.List[j].Distance
+	server1 := ss.List[i]
+	server2 := ss.List[j]
+	if server1.ID == server2.ID {
+		return false;
+	}
+	if server1.Distance < server2.Distance {
+		return true;
+	}
+	if server1.Distance > server2.Distance {
+		return false
+	}
+	return server1.ID < server2.ID
 }
 
 func (ss *Servers) Swap(i, j int) {
@@ -52,6 +63,38 @@ func (ss *Servers) String() string {
 		out += server.String() + "\n"
 	}
 	return out
+}
+
+func (servers *Servers) retrieveFrom(client *Client, url string) {
+	resp, err := client.Get(url)
+	if resp != nil {
+		url = resp.Request.URL.String()
+	}
+	if err != nil {
+		log.Printf("Failed to retrieve server list from %s: %v", url, err)
+	}
+	if err = resp.ReadXML(servers); err != nil {
+		log.Printf("Failed to read server list %s: %v", url, err)
+	}
+}
+
+func (servers *Servers) sort(config *Config) {
+	for _, server := range servers.List {
+		server.Distance = server.DistanceTo(config.Client.Coordinates)
+	}
+	sort.Sort(servers)
+}
+
+func (servers *Servers) deduplicate() {
+	dedup := make([]*Server, 0, len(servers.List));
+	var prevId  uint64 = 0;
+	for _, server := range servers.List {
+		if prevId != server.ID {
+			prevId = server.ID
+			dedup = append(dedup, server);
+		}
+	}
+	servers.List = dedup
 }
 
 var serverURLs = [...]string{
@@ -77,27 +120,14 @@ func (client *Client) Servers() (servers *Servers, err error) {
 
 	servers = &Servers{}
 	for _, url := range serverURLs {
-		resp, err := client.Get(url)
-		if resp != nil {
-			url = resp.Request.URL.String()
-		}
-		if err != nil {
-			log.Printf("Failed to retrieve server list from %s: %v", url, err)
-		}
-
-
-		if err = resp.ReadXML(servers); err != nil {
-			log.Printf("Failed to read server list %s: %v", url, err)
-		}
+		servers.retrieveFrom(client, url)
 	}
-
-	if servers == nil {
+	if len(servers.List) == 0 {
 		return nil, NoServersError
 	}
-	for _, server := range servers.List {
-		server.Distance = server.DistanceTo(config.Client.Coordinates)
-	}
-	sort.Sort(servers)
+
+	servers.sort(config)
+	servers.deduplicate()
 	client.servers = servers
 
 	return servers, nil;
