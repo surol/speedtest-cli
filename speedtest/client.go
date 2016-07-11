@@ -8,13 +8,18 @@ import (
 	"io"
 	"net"
 	"log"
+	"encoding/xml"
+	"io/ioutil"
 )
 
 type Client struct {
 	http.Client
 	opts *Opts
 	config *Config
+	servers *Servers
 }
+
+type Response http.Response
 
 func NewClient(opts *Opts) *Client {
 	dialer := &net.Dialer{
@@ -67,10 +72,26 @@ func (client *Client) NewRequest(method string, url string, body io.Reader) (*ht
 	return req, err;
 }
 
-func (client *Client) Get(url string) (*http.Response, error) {
+func (client *Client) Get(url string) (resp *Response, err error) {
 	req, err := client.NewRequest("GET", url, nil);
 	if err != nil {
 		return nil, err
 	}
-	return client.Client.Do(req)
+
+	htResp, err := client.Client.Do(req)
+	resp = (*Response)(htResp)
+
+	return resp, err;
+}
+
+func (resp *Response) ReadXML(out interface{}) error {
+	content, err := ioutil.ReadAll(resp.Body)
+	cerr := resp.Body.Close()
+	if err != nil {
+		return err;
+	}
+	if cerr != nil {
+		return cerr;
+	}
+	return xml.Unmarshal(content, out)
 }

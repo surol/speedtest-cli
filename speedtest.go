@@ -32,8 +32,18 @@ func main() {
 
 	client := speedtest.NewClient(opts)
 
-	_, err := client.Config()
+	servers, err := client.Servers()
+
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err);
+	}
+
+	if opts.List {
+		fmt.Println(servers)
+		return
+	}
+
+	if len(opts.Server) == 0 {
+		servers.Truncate(5)
 	}
 }

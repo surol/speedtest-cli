@@ -1,7 +1,6 @@
 package speedtest
 
 import (
-	"io/ioutil"
 	"encoding/xml"
 	"strings"
 	"strconv"
@@ -9,15 +8,14 @@ import (
 )
 
 type ClientConfig struct {
+	Coordinates
 	IP                 string `xml:"ip,attr"`
-	Latitude           float32 `xml:"lat"`
-	Longitude          float32 `xml:"lon"`
-	ISP                string `xml:"isp"`
-	ISPRating          float32 `xml:"isprating"`
-	ISPDownloadAverage uint32 `xml:"ispdlavg"`
-	ISPUploadAverage   uint32 `xml:"ispulavg"`
-	Rating             float32 `xml:"rating"`
-	LoggedIn           uint8 `xml:"loggedin"`
+	ISP                string `xml:"isp,attr"`
+	ISPRating          float32 `xml:"isprating,attr"`
+	ISPDownloadAverage uint32 `xml:"ispdlavg,attr"`
+	ISPUploadAverage   uint32 `xml:"ispulavg,attr"`
+	Rating             float32 `xml:"rating,attr"`
+	LoggedIn           uint8 `xml:"loggedin,attr"`
 }
 
 type ConfigTime struct {
@@ -50,18 +48,8 @@ func (client *Client) Config() (config *Config, err error) {
 		return nil, err
 	}
 
-	xmlcontent, err := ioutil.ReadAll(resp.Body)
-	cerr := resp.Body.Close();
-	if err != nil {
-		return nil, err
-	}
-	if cerr != nil {
-		return nil, cerr
-	}
-
 	config = &Config{}
-
-	err = xml.Unmarshal(xmlcontent, config)
+	err = resp.ReadXML(config)
 	if err != nil {
 		return nil, err
 	}
