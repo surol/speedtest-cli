@@ -46,7 +46,7 @@ func (client *Client) Config(ret chan ConfigRef) {
 	defer client.mutex.Unlock()
 
 	if client.config != nil {
-		ret <- ConfigRef{client.config, nil}
+		ret <- *client.config
 		return
 	}
 
@@ -56,24 +56,26 @@ func (client *Client) Config(ret chan ConfigRef) {
 func (client *Client) loadConfig(ret chan ConfigRef) {
 	client.Log("Retrieving speedtest.net configuration...")
 
+	result := &ConfigRef{}
+
 	resp, err := client.Get("://www.speedtest.net/speedtest-config.php")
 	if err != nil {
-		ret <- ConfigRef{nil, err}
-		return
-	}
-
-	config := &Config{}
-	err = resp.ReadXML(config)
-	if err != nil {
-		ret <- ConfigRef{nil, err}
-		return
+		result.Error = err
+	} else {
+		config := &Config{}
+		err = resp.ReadXML(config)
+		if err != nil {
+			result.Error = err
+		} else {
+			result.Config = config
+		}
 	}
 
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
-	client.config = config
-	ret <- ConfigRef{config, nil}
+	client.config = result
+	ret <- *result
 }
 
 func (times ConfigTimes) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {

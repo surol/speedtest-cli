@@ -32,11 +32,14 @@ func main() {
 
 	client := speedtest.NewClient(opts)
 
-	servers, err := client.Servers()
+	serversChan := make(chan speedtest.ServersRef)
+	client.Servers(serversChan)
 
-	if err != nil {
-		log.Fatal(err);
+	serversRef := <- serversChan
+	if serversRef.Error != nil {
+		log.Fatal(serversRef.Error);
 	}
+	servers := serversRef.Servers
 
 	if opts.List {
 		fmt.Println(servers)

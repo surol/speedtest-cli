@@ -28,13 +28,18 @@ type Servers struct {
 	List []*Server `xml:"servers>server"`
 }
 
-func (ss *Servers) Len() int {
-	return len(ss.List)
+type ServersRef struct {
+	Servers *Servers
+	Error error
 }
 
-func (ss *Servers) Less(i, j int) bool {
-	server1 := ss.List[i]
-	server2 := ss.List[j]
+func (servers *Servers) Len() int {
+	return len(servers.List)
+}
+
+func (servers *Servers) Less(i, j int) bool {
+	server1 := servers.List[i]
+	server2 := servers.List[j]
 	if server1.ID == server2.ID {
 		return false;
 	}
@@ -47,35 +52,34 @@ func (ss *Servers) Less(i, j int) bool {
 	return server1.ID < server2.ID
 }
 
-func (ss *Servers) Swap(i, j int) {
-	temp := ss.List[i]
-	ss.List[i] = ss.List[j]
-	ss.List[j] = temp;
+func (servers *Servers) Swap(i, j int) {
+	temp := servers.List[i]
+	servers.List[i] = servers.List[j]
+	servers.List[j] = temp;
 }
 
-func (ss *Servers) Truncate(len uint) {
-	ss.List = ss.List[:len]
+func (servers *Servers) Truncate(max int) {
+	size := servers.Len()
+	if size < max {
+		max = size;
+	}
+	servers.List = servers.List[:max]
 }
 
-func (ss *Servers) String() string {
+func (servers *Servers) String() string {
 	out := ""
-	for _, server := range ss.List {
+	for _, server := range servers.List {
 		out += server.String() + "\n"
 	}
 	return out
 }
 
-func (servers *Servers) retrieveFrom(client *Client, url string) {
-	resp, err := client.Get(url)
-	if resp != nil {
-		url = resp.Request.URL.String()
+func (servers *Servers) append(other *Servers) *Servers {
+	if servers == nil {
+		return other
 	}
-	if err != nil {
-		log.Printf("Failed to retrieve server list from %s: %v", url, err)
-	}
-	if err = resp.ReadXML(servers); err != nil {
-		log.Printf("Failed to read server list %s: %v", url, err)
-	}
+	servers.List = append(servers.List, other.List...)
+	return servers
 }
 
 func (servers *Servers) sort(config *Config) {
@@ -106,32 +110,69 @@ var serverURLs = [...]string{
 
 var NoServersError error = errors.New("No servers available")
 
-func (client *Client) Servers() (servers *Servers, err error) {
+func (client *Client) Servers(ret chan ServersRef) {
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
+
 	if client.servers != nil {
-		return client.servers, nil
+		ret <- *client.servers
+		return;
 	}
 
+	go client.loadServers(ret)
+}
+
+func (client *Client) loadServers(ret chan ServersRef) {
 	configChan := make(chan ConfigRef)
 	client.Config(configChan);
 
 	client.Log("Retrieving speedtest.net server list...")
 
-	servers = &Servers{}
+	serversChan := make(chan *Servers, len(serverURLs))
 	for _, url := range serverURLs {
-		servers.retrieveFrom(client, url)
-	}
-	if len(servers.List) == 0 {
-		return nil, NoServersError
+		go client.loadServersFrom(url, serversChan)
 	}
 
-	configRef := <- configChan
-	if configRef.Error != nil {
-		return nil, err
+	var servers *Servers
+
+	for range serverURLs {
+		servers = servers.append(<- serversChan);
 	}
 
-	servers.sort(configRef.Config)
-	servers.deduplicate()
-	client.servers = servers
+	result := &ServersRef{}
 
-	return servers, nil;
+	if servers.Len() == 0 {
+		result.Error = NoServersError
+	} else {
+		configRef := <- configChan
+		if configRef.Error != nil {
+			result.Error = configRef.Error
+		} else {
+			servers.sort(configRef.Config)
+			servers.deduplicate()
+			result.Servers = servers
+		}
+	}
+
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
+
+	client.servers = result
+	ret <- *result
+}
+
+func (client *Client) loadServersFrom(url string, ret chan *Servers) {
+	resp, err := client.Get(url)
+	if resp != nil {
+		url = resp.Request.URL.String()
+	}
+	if err != nil {
+		log.Printf("Failed to retrieve server list from %s: %v", url, err)
+	}
+
+	servers := &Servers{}
+	if err = resp.ReadXML(servers); err != nil {
+		log.Printf("Failed to read server list %s: %v", url, err)
+	}
+	ret <- servers
 }

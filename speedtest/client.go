@@ -16,9 +16,9 @@ import (
 type Client struct {
 	http.Client
 	opts *Opts
-	config *Config
-	servers *Servers
 	mutex sync.Mutex
+	config *ConfigRef
+	servers *ServersRef
 }
 
 type Response http.Response
