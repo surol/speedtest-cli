@@ -51,11 +51,17 @@ func main() {
 	server := selectServer(opts, client);
 
 	downloadSpeed := server.DownloadSpeed()
+	reportSpeed(opts, "Download", downloadSpeed)
 
+	uploadSpeed := server.UploadSpeed()
+	reportSpeed(opts, "Upload", uploadSpeed)
+}
+
+func reportSpeed(opts *speedtest.Opts, prefix string, speed int) {
 	if opts.SpeedInBytes {
-		fmt.Printf("Download: %.2f MiB/s\n", float64(downloadSpeed) / (1 << 20))
+		fmt.Printf("%s: %.2f MiB/s\n", prefix, float64(speed) / (1 << 20))
 	} else {
-		fmt.Printf("Download: %.2f Mib/s\n", float64(downloadSpeed) / (1 << 17))
+		fmt.Printf("%s: %.2f Mib/s\n", prefix, float64(speed) / (1 << 17))
 	}
 }
 
