@@ -15,10 +15,10 @@ import (
 
 type Client struct {
 	http.Client
-	opts       *Opts
-	mutex      sync.Mutex
-	config     chan ConfigRef
-	allServers chan ServersRef
+	opts           *Opts
+	mutex          sync.Mutex
+	config         chan ConfigRef
+	allServers     chan ServersRef
 	closestServers chan ServersRef
 }
 
@@ -87,14 +87,22 @@ func (client *Client) Get(url string) (resp *Response, err error) {
 	return resp, err;
 }
 
-func (resp *Response) ReadXML(out interface{}) error {
+func (resp *Response) ReadContent() ([]byte, error) {
 	content, err := ioutil.ReadAll(resp.Body)
 	cerr := resp.Body.Close()
 	if err != nil {
-		return err;
+		return nil, err;
 	}
 	if cerr != nil {
-		return cerr;
+		return content, cerr;
+	}
+	return content, nil;
+}
+
+func (resp *Response) ReadXML(out interface{}) error {
+	content, err := resp.ReadContent()
+	if err != nil {
+		return err;
 	}
 	return xml.Unmarshal(content, out)
 }

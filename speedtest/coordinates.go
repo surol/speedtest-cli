@@ -3,8 +3,8 @@ package speedtest
 import "math"
 
 type Coordinates struct {
-	Latitude           float32 `xml:"lat,attr"`
-	Longitude          float32 `xml:"lon,attr"`
+	Latitude  float32 `xml:"lat,attr"`
+	Longitude float32 `xml:"lon,attr"`
 }
 
 const radius = 6371  // km

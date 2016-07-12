@@ -1,11 +1,13 @@
 package speedtest
 
 import (
-	"log"
 	"errors"
 	"sort"
 	"fmt"
+	"time"
 )
+
+type ServerID uint64
 
 type Server struct {
 	Coordinates
@@ -14,14 +16,16 @@ type Server struct {
 	Country  string `xml:"country,attr"`
 	CC       string `xml:"cc,attr"`
 	Sponsor  string `xml:"sponsor,attr"`
-	ID       uint64 `xml:"id,attr"`
+	ID       ServerID `xml:"id,attr"`
 	URL2     string `xml:"url2,attr"`
 	Host     string `xml:"host,attr"`
+	client   *Client `xml:"-"`
 	Distance float64 `xml:"-"`
+	Latency  time.Duration `xml:"-"`
 }
 
 func (s *Server) String() string {
-	return fmt.Sprintf("%d %s (%s, %s) --- %.2f km", s.ID, s.Sponsor, s.Name, s.Country, s.Distance)
+	return fmt.Sprintf("%8d: %s (%s, %s) [%.2f km] %s", s.ID, s.Sponsor, s.Name, s.Country, s.Distance, s.URL)
 }
 
 type Servers struct {
@@ -30,7 +34,23 @@ type Servers struct {
 
 type ServersRef struct {
 	Servers *Servers
-	Error error
+	Error   error
+}
+
+func (servers *Servers) First() *Server {
+	if len(servers.List) == 0 {
+		return nil
+	}
+	return servers.List[0]
+}
+
+func (servers *Servers) Find(id ServerID) *Server {
+	for _, server := range servers.List {
+		if server.ID == id {
+			return server
+		}
+	}
+	return nil;
 }
 
 func (servers *Servers) Len() int {
@@ -82,8 +102,9 @@ func (servers *Servers) append(other *Servers) *Servers {
 	return servers
 }
 
-func (servers *Servers) sort(config *Config) {
+func (servers *Servers) sort(client *Client, config *Config) {
 	for _, server := range servers.List {
+		server.client = client;
 		server.Distance = server.DistanceTo(config.Client.Coordinates)
 	}
 	sort.Sort(servers)
@@ -91,7 +112,7 @@ func (servers *Servers) sort(config *Config) {
 
 func (servers *Servers) deduplicate() {
 	dedup := make([]*Server, 0, len(servers.List));
-	var prevId  uint64 = 0;
+	var prevId ServerID = 0;
 	for _, server := range servers.List {
 		if prevId != server.ID {
 			prevId = server.ID
@@ -113,7 +134,7 @@ var NoServersError error = errors.New("No servers available")
 func (client *Client) AllServers() (*Servers, error) {
 	serversChan := make(chan ServersRef)
 	client.LoadAllServers(serversChan)
-	serversRef := <- serversChan
+	serversRef := <-serversChan
 	return serversRef.Servers, serversRef.Error
 }
 
@@ -127,7 +148,7 @@ func (client *Client) LoadAllServers(ret chan ServersRef) {
 	}
 
 	go func() {
-		result := <- client.allServers
+		result := <-client.allServers
 		ret <- result
 		client.allServers <- result// Make it available again
 	}()
@@ -147,7 +168,7 @@ func (client *Client) loadServers() {
 	var servers *Servers
 
 	for range serverURLs {
-		servers = servers.append(<- serversChan);
+		servers = servers.append(<-serversChan);
 	}
 
 	result := ServersRef{}
@@ -155,11 +176,11 @@ func (client *Client) loadServers() {
 	if servers.Len() == 0 {
 		result.Error = NoServersError
 	} else {
-		configRef := <- configChan
+		configRef := <-configChan
 		if configRef.Error != nil {
 			result.Error = configRef.Error
 		} else {
-			servers.sort(configRef.Config)
+			servers.sort(client, configRef.Config)
 			servers.deduplicate()
 			result.Servers = servers
 		}
@@ -174,12 +195,12 @@ func (client *Client) loadServersFrom(url string, ret chan *Servers) {
 		url = resp.Request.URL.String()
 	}
 	if err != nil {
-		log.Printf("Failed to retrieve server list from %s: %v", url, err)
+		client.Log("[%s] Failed to retrieve server list: %v", url, err)
 	}
 
 	servers := &Servers{}
 	if err = resp.ReadXML(servers); err != nil {
-		log.Printf("Failed to read server list %s: %v", url, err)
+		client.Log("[%s] Failed to read server list: %v", url, err)
 	}
 	ret <- servers
 }
@@ -187,7 +208,7 @@ func (client *Client) loadServersFrom(url string, ret chan *Servers) {
 func (client *Client) ClosestServers() (*Servers, error) {
 	serversChan := make(chan ServersRef)
 	client.LoadClosestServers(serversChan)
-	serversRef := <- serversChan
+	serversRef := <-serversChan
 	return serversRef.Servers, serversRef.Error
 }
 
@@ -201,7 +222,7 @@ func (client *Client) LoadClosestServers(ret chan ServersRef) {
 	}
 
 	go func() {
-		result := <- client.closestServers
+		result := <-client.closestServers
 		ret <- result
 		client.closestServers <- result// Make it available again
 	}()
@@ -210,7 +231,7 @@ func (client *Client) LoadClosestServers(ret chan ServersRef) {
 func (client *Client) loadClosestServers() {
 	serversChan := make(chan ServersRef)
 	client.LoadAllServers(serversChan)
-	serversRef := <- serversChan
+	serversRef := <-serversChan
 	if serversRef.Error != nil {
 		client.closestServers <- serversRef
 	} else {

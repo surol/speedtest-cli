@@ -31,20 +31,20 @@ type Config struct {
 }
 
 func (client *Client) Log(format string, a ...interface{}) {
-	if !client.opts.Simple {
+	if !client.opts.Quiet {
 		log.Printf(format, a...)
 	}
 }
 
 type ConfigRef struct {
 	Config *Config
-	Error error
+	Error  error
 }
 
 func (client *Client) Config() (*Config, error) {
 	configChan := make(chan ConfigRef)
 	client.LoadConfig(configChan)
-	configRef := <- configChan
+	configRef := <-configChan
 	return configRef.Config, configRef.Error
 }
 
@@ -58,7 +58,7 @@ func (client *Client) LoadConfig(ret chan ConfigRef) {
 	}
 
 	go func() {
-		result := <- client.config
+		result := <-client.config
 		ret <- result
 		client.config <- result
 	}()
