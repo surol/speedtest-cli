@@ -15,10 +15,10 @@ import (
 
 type Client struct {
 	http.Client
-	opts *Opts
-	mutex sync.Mutex
-	config *ConfigRef
-	servers *ServersRef
+	opts       *Opts
+	mutex      sync.Mutex
+	config     chan ConfigRef
+	allServers chan ServersRef
 }
 
 type Response http.Response

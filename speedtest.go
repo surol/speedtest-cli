@@ -20,20 +20,19 @@ func usage() {
 func main() {
 	opts := speedtest.ParseOpts()
 
-	if opts.Version {
-		version()
+	switch {
+	case opts.Help:
+		usage()
 		return
-	}
-
-	if opts.Help {
-		usage();
+	case opts.Version:
+		version()
 		return
 	}
 
 	client := speedtest.NewClient(opts)
 
 	serversChan := make(chan speedtest.ServersRef)
-	client.Servers(serversChan)
+	client.AllServers(serversChan)
 
 	serversRef := <- serversChan
 	if serversRef.Error != nil {

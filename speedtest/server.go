@@ -110,19 +110,23 @@ var serverURLs = [...]string{
 
 var NoServersError error = errors.New("No servers available")
 
-func (client *Client) Servers(ret chan ServersRef) {
+func (client *Client) AllServers(ret chan ServersRef) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
-	if client.servers != nil {
-		ret <- *client.servers
-		return;
+	if client.allServers == nil {
+		client.allServers = make(chan ServersRef)
+		go client.loadServers()
 	}
 
-	go client.loadServers(ret)
+	go func() {
+		result := <- client.allServers
+		ret <- result
+		client.allServers <- result// Make it available again
+	}()
 }
 
-func (client *Client) loadServers(ret chan ServersRef) {
+func (client *Client) loadServers() {
 	configChan := make(chan ConfigRef)
 	client.Config(configChan);
 
@@ -139,7 +143,7 @@ func (client *Client) loadServers(ret chan ServersRef) {
 		servers = servers.append(<- serversChan);
 	}
 
-	result := &ServersRef{}
+	result := ServersRef{}
 
 	if servers.Len() == 0 {
 		result.Error = NoServersError
@@ -154,11 +158,7 @@ func (client *Client) loadServers(ret chan ServersRef) {
 		}
 	}
 
-	client.mutex.Lock()
-	defer client.mutex.Unlock()
-
-	client.servers = result
-	ret <- *result
+	client.allServers <- result
 }
 
 func (client *Client) loadServersFrom(url string, ret chan *Servers) {
