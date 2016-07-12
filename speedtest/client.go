@@ -10,6 +10,7 @@ import (
 	"log"
 	"encoding/xml"
 	"io/ioutil"
+	"sync"
 )
 
 type Client struct {
@@ -17,6 +18,7 @@ type Client struct {
 	opts *Opts
 	config *Config
 	servers *Servers
+	mutex sync.Mutex
 }
 
 type Response http.Response

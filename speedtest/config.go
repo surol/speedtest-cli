@@ -36,27 +36,44 @@ func (client *Client) Log(format string, a ...interface{}) {
 	}
 }
 
-func (client *Client) Config() (config *Config, err error) {
+type ConfigRef struct {
+	Config *Config
+	Error error
+}
+
+func (client *Client) Config(ret chan ConfigRef) {
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
+
 	if client.config != nil {
-		return client.config, nil
+		ret <- ConfigRef{client.config, nil}
+		return
 	}
 
+	go client.loadConfig(ret)
+}
+
+func (client *Client) loadConfig(ret chan ConfigRef) {
 	client.Log("Retrieving speedtest.net configuration...")
 
 	resp, err := client.Get("://www.speedtest.net/speedtest-config.php")
 	if err != nil {
-		return nil, err
+		ret <- ConfigRef{nil, err}
+		return
 	}
 
-	config = &Config{}
+	config := &Config{}
 	err = resp.ReadXML(config)
 	if err != nil {
-		return nil, err
+		ret <- ConfigRef{nil, err}
+		return
 	}
 
-	client.config = config
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
 
-	return config, nil
+	client.config = config
+	ret <- ConfigRef{config, nil}
 }
 
 func (times ConfigTimes) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {

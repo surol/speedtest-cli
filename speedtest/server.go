@@ -111,10 +111,8 @@ func (client *Client) Servers() (servers *Servers, err error) {
 		return client.servers, nil
 	}
 
-	config, err := client.Config();
-	if err != nil {
-		return nil, err
-	}
+	configChan := make(chan ConfigRef)
+	client.Config(configChan);
 
 	client.Log("Retrieving speedtest.net server list...")
 
@@ -126,7 +124,12 @@ func (client *Client) Servers() (servers *Servers, err error) {
 		return nil, NoServersError
 	}
 
-	servers.sort(config)
+	configRef := <- configChan
+	if configRef.Error != nil {
+		return nil, err
+	}
+
+	servers.sort(configRef.Config)
 	servers.deduplicate()
 	client.servers = servers
 
