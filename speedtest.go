@@ -44,8 +44,4 @@ func main() {
 		fmt.Println(servers)
 		return
 	}
-
-	if len(opts.Server) == 0 {
-		servers.Truncate(5)
-	}
 }

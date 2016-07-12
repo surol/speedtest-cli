@@ -19,6 +19,7 @@ type Client struct {
 	mutex      sync.Mutex
 	config     chan ConfigRef
 	allServers chan ServersRef
+	closestServers chan ServersRef
 }
 
 type Response http.Response

@@ -58,12 +58,12 @@ func (servers *Servers) Swap(i, j int) {
 	servers.List[j] = temp;
 }
 
-func (servers *Servers) Truncate(max int) {
+func (servers *Servers) truncate(max int) *Servers {
 	size := servers.Len()
-	if size < max {
-		max = size;
+	if size <= max {
+		return servers;
 	}
-	servers.List = servers.List[:max]
+	return &Servers{servers.List[:max]}
 }
 
 func (servers *Servers) String() string {
@@ -175,4 +175,31 @@ func (client *Client) loadServersFrom(url string, ret chan *Servers) {
 		log.Printf("Failed to read server list %s: %v", url, err)
 	}
 	ret <- servers
+}
+
+func (client *Client) ClosestServers(ret chan ServersRef) {
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
+
+	if client.closestServers == nil {
+		client.closestServers = make(chan ServersRef)
+		go client.loadClosestServers()
+	}
+
+	go func() {
+		result := <- client.closestServers
+		ret <- result
+		client.closestServers <- result// Make it available again
+	}()
+}
+
+func (client *Client) loadClosestServers() {
+	serversChan := make(chan ServersRef)
+	client.AllServers(serversChan)
+	serversRef := <- serversChan
+	if serversRef.Error != nil {
+		client.closestServers <- serversRef
+	} else {
+		client.closestServers <- ServersRef{serversRef.Servers.truncate(5), nil}
+	}
 }
