@@ -31,17 +31,18 @@ func main() {
 
 	client := speedtest.NewClient(opts)
 
-	serversChan := make(chan speedtest.ServersRef)
-	client.AllServers(serversChan)
-
-	serversRef := <- serversChan
-	if serversRef.Error != nil {
-		log.Fatal(serversRef.Error);
-	}
-	servers := serversRef.Servers
-
 	if opts.List {
+		servers, err := client.AllServers()
+		if err != nil {
+			log.Fatal(err)
+		}
 		fmt.Println(servers)
 		return
 	}
+
+	config, err := client.Config()
+	if err != nil {
+		log.Fatal(err)
+	}
+	client.Log("Testing from %s (%s)...", config.Client.ISP, config.Client.IP)
 }

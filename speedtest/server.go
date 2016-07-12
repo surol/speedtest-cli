@@ -110,7 +110,14 @@ var serverURLs = [...]string{
 
 var NoServersError error = errors.New("No servers available")
 
-func (client *Client) AllServers(ret chan ServersRef) {
+func (client *Client) AllServers() (*Servers, error) {
+	serversChan := make(chan ServersRef)
+	client.LoadAllServers(serversChan)
+	serversRef := <- serversChan
+	return serversRef.Servers, serversRef.Error
+}
+
+func (client *Client) LoadAllServers(ret chan ServersRef) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
@@ -128,7 +135,7 @@ func (client *Client) AllServers(ret chan ServersRef) {
 
 func (client *Client) loadServers() {
 	configChan := make(chan ConfigRef)
-	client.Config(configChan);
+	client.LoadConfig(configChan);
 
 	client.Log("Retrieving speedtest.net server list...")
 
@@ -177,7 +184,14 @@ func (client *Client) loadServersFrom(url string, ret chan *Servers) {
 	ret <- servers
 }
 
-func (client *Client) ClosestServers(ret chan ServersRef) {
+func (client *Client) ClosestServers() (*Servers, error) {
+	serversChan := make(chan ServersRef)
+	client.LoadClosestServers(serversChan)
+	serversRef := <- serversChan
+	return serversRef.Servers, serversRef.Error
+}
+
+func (client *Client) LoadClosestServers(ret chan ServersRef) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
@@ -195,7 +209,7 @@ func (client *Client) ClosestServers(ret chan ServersRef) {
 
 func (client *Client) loadClosestServers() {
 	serversChan := make(chan ServersRef)
-	client.AllServers(serversChan)
+	client.LoadAllServers(serversChan)
 	serversRef := <- serversChan
 	if serversRef.Error != nil {
 		client.closestServers <- serversRef
