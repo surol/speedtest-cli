@@ -30,10 +30,10 @@ func NewClient(opts *Opts) *Client {
 		KeepAlive: opts.Timeout,
 	}
 
-	if len(opts.Source) != 0 {
-		dialer.LocalAddr = &net.IPAddr{IP: net.ParseIP(opts.Source)}
+	if len(opts.Interface) != 0 {
+		dialer.LocalAddr = &net.IPAddr{IP: net.ParseIP(opts.Interface)}
 		if dialer.LocalAddr == nil {
-			log.Fatalf("Invalid source IP: %s\n", opts.Source)
+			log.Fatalf("Invalid source IP: %s\n", opts.Interface)
 		}
 	}
 
