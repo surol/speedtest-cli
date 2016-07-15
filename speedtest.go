@@ -48,7 +48,21 @@ func main() {
 
 	client.Log("Testing from %s (%s)...\n", config.Client.ISP, config.Client.IP)
 
-	selectServer(opts, client);
+	server := selectServer(opts, client);
+
+	downloadSpeed := server.DownloadSpeed()
+	reportSpeed(opts, "Download", downloadSpeed)
+
+	uploadSpeed := server.UploadSpeed()
+	reportSpeed(opts, "Upload", uploadSpeed)
+}
+
+func reportSpeed(opts *speedtest.Opts, prefix string, speed int) {
+	if opts.SpeedInBytes {
+		fmt.Printf("%s: %.2f MiB/s\n", prefix, float64(speed) / (1 << 20))
+	} else {
+		fmt.Printf("%s: %.2f Mib/s\n", prefix, float64(speed) / (1 << 17))
+	}
 }
 
 func selectServer(opts *speedtest.Opts, client *speedtest.Client) (selected *speedtest.Server) {

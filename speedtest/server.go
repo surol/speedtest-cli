@@ -5,6 +5,8 @@ import (
 	"sort"
 	"fmt"
 	"time"
+	"net/url"
+	"log"
 )
 
 type ServerID uint64
@@ -26,6 +28,19 @@ type Server struct {
 
 func (s *Server) String() string {
 	return fmt.Sprintf("%8d: %s (%s, %s) [%.2f km] %s", s.ID, s.Sponsor, s.Name, s.Country, s.Distance, s.URL)
+}
+
+func (s *Server) RelativeURL(local string) string {
+	u, err := url.Parse(s.URL)
+	if err != nil {
+		log.Fatalf("[%s] Failed to parse server URL: %v\n", s.URL, err)
+		return ""
+	}
+	localURL, err := url.Parse(local)
+	if err != nil {
+		log.Fatalf("Failed to parse local URL `%s`: %v\n", local, err);
+	}
+	return u.ResolveReference(localURL).String()
 }
 
 type Servers struct {

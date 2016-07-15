@@ -30,10 +30,10 @@ func NewClient(opts *Opts) *Client {
 		KeepAlive: opts.Timeout,
 	}
 
-	if len(opts.Source) != 0 {
-		dialer.LocalAddr = &net.IPAddr{IP: net.ParseIP(opts.Source)}
+	if len(opts.Interface) != 0 {
+		dialer.LocalAddr = &net.IPAddr{IP: net.ParseIP(opts.Interface)}
 		if dialer.LocalAddr == nil {
-			log.Fatalf("Invalid source IP: %s\n", opts.Source)
+			log.Fatalf("Invalid source IP: %s\n", opts.Interface)
 		}
 	}
 
@@ -82,9 +82,20 @@ func (client *Client) Get(url string) (resp *Response, err error) {
 	}
 
 	htResp, err := client.Client.Do(req)
-	resp = (*Response)(htResp)
 
-	return resp, err;
+	return (*Response)(htResp), err;
+}
+
+func (client *Client) Post(url string, bodyType string, body io.Reader) (resp *Response, err error) {
+	req, err := client.NewRequest("POST", url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", bodyType)
+	htResp, err := client.Client.Do(req)
+
+	return (*Response)(htResp), err;
 }
 
 func (resp *Response) ReadContent() ([]byte, error) {

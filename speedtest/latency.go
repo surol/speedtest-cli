@@ -4,8 +4,6 @@ import (
 	"time"
 	"strings"
 	"sort"
-	"net/url"
-	"log"
 )
 
 const DefaultLatencyMeasureTimes = 4
@@ -66,30 +64,13 @@ func (server *Server) doMeasureLatency(times uint, errorLatency time.Duration) t
 	return server.Latency
 }
 
-var latencyURL *url.URL
-
-func init() {
-
-	var err error
-
-	latencyURL, err = url.Parse("latency.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 func (server *Server) measureLatency(errorLatency time.Duration) time.Duration {
-	url, err := url.Parse(server.URL)
-	if err != nil {
-		server.client.Log("[%s] Wrong server URL: %v\n", server.URL, err)
-		return errorLatency
-	}
-	url = url.ResolveReference(latencyURL)
+	url := server.RelativeURL("latency.txt")
 	start := time.Now()
-	resp, err := server.client.Get(url.String())
+	resp, err := server.client.Get(url)
 	duration := time.Since(start);
 	if resp != nil {
-		url = resp.Request.URL
+		url = resp.Request.URL.String()
 	}
 	if err != nil {
 		server.client.Log("[%s] Failed to detect latency: %v\n", url, err)
