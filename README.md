@@ -17,7 +17,7 @@ go install bitbucket.org/lorus/speedtest-cli
 Usage
 -----
 
-Without any arguments `speedtest-cli` test the speed against the closest server with the lowest latency.
+Without any arguments `speedtest-cli` tests the speed against the closest server with the lowest latency.
 
 The following command line options are available:
 ```
