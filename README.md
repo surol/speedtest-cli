@@ -1,9 +1,9 @@
 speedtest.net CLI
 =================
 
-This a simple command line client to speedtest.net written in Go.
+This is a simple command line client to speedtest.net written in Go.
 
-It is a direct port from https://github.com/sivel/speedtest-cli written in Python. It lacks some of the features though, e.g. `-mini` and `-share` options are not supported
+It is a direct port from https://github.com/sivel/speedtest-cli written in Python. It lacks some of the features though, e.g. `-mini` and `-share` options are not supported.
 
 Installation
 ------------
