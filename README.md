@@ -10,8 +10,8 @@ Installation
 
 Run te following commands in console
 ```
-go get bitbucket.org/lorus/speedtest-cli
-go install bitbucket.org/lorus/speedtest-cli
+go get github.com/surol/speedtest-cli
+go install github.com/surol/speedtest-cli
 ```
 
 Usage
