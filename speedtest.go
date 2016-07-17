@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bitbucket.org/lorus/speedtest-cli/speedtest"
+	"github.com/surol/speedtest-cli/speedtest"
 	"fmt"
 	"os"
 	"flag"
