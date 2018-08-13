@@ -87,6 +87,7 @@ func (server *Server) UploadSpeed() int {
 
 	go func() {
 		for _, size := range uploadSizes {
+			size := size // local copy to avoid the data race.
 			for i := 0; i < uploadRepeats; i++ {
 				url := server.URL
 				starterChan <- 1
