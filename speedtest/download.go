@@ -15,7 +15,7 @@ const downloadRepeats = 5
 
 var downloadImageSizes = []int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
 
-func (client *Client) downloadFile(url string, start time.Time, ret chan int) {
+func (client *client) downloadFile(url string, start time.Time, ret chan int) {
 	totalRead := 0
 	defer func() {
 		ret <- totalRead
@@ -51,7 +51,7 @@ func (client *Client) downloadFile(url string, start time.Time, ret chan int) {
 }
 
 func (server *Server) DownloadSpeed() int {
-	client := server.client
+	client := server.client.(*client)
 	if !client.opts.Quiet {
 		os.Stdout.WriteString("Testing download speed: ")
 		os.Stdout.Sync()

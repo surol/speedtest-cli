@@ -43,7 +43,7 @@ func (r safeReader) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
-func (client *Client) uploadFile(url string, start time.Time, size int, ret chan int) {
+func (client *client) uploadFile(url string, start time.Time, size int, ret chan int) {
 	totalWrote := 0
 	defer func() {
 		ret <- totalWrote
@@ -74,7 +74,7 @@ func (client *Client) uploadFile(url string, start time.Time, size int, ret chan
 }
 
 func (server *Server) UploadSpeed() int {
-	client := server.client
+	client := server.client.(*client)
 	if !client.opts.Quiet {
 		os.Stdout.WriteString("Testing upload speed: ")
 		os.Stdout.Sync()

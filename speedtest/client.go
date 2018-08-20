@@ -13,7 +13,20 @@ import (
 	"sync"
 )
 
-type Client struct {
+type Client interface {
+	Log(format string, a ...interface{})
+	Config() (*Config, error)
+	LoadConfig(ret chan ConfigRef)
+	NewRequest(method string, url string, body io.Reader) (*http.Request, error)
+	Get(url string) (resp *Response, err error)
+	Post(url string, bodyType string, body io.Reader) (resp *Response, err error)
+	AllServers() (*Servers, error)
+	LoadAllServers(ret chan ServersRef)
+	ClosestServers() (*Servers, error)
+	LoadClosestServers(ret chan ServersRef)
+}
+
+type client struct {
 	http.Client
 	opts           *Opts
 	mutex          sync.Mutex
@@ -24,7 +37,7 @@ type Client struct {
 
 type Response http.Response
 
-func NewClient(opts *Opts) *Client {
+func NewClient(opts *Opts) Client {
 	dialer := &net.Dialer{
 		Timeout: opts.Timeout,
 		KeepAlive: opts.Timeout,
@@ -44,7 +57,7 @@ func NewClient(opts *Opts) *Client {
 		ExpectContinueTimeout: opts.Timeout,
 	}
 
-	client := &Client{
+	client := &client{
 		Client: http.Client{
 			Transport: transport,
 			Timeout: opts.Timeout,
@@ -55,7 +68,7 @@ func NewClient(opts *Opts) *Client {
 	return client;
 }
 
-func (client *Client) NewRequest(method string, url string, body io.Reader) (*http.Request, error) {
+func (client *client) NewRequest(method string, url string, body io.Reader) (*http.Request, error) {
 	if strings.HasPrefix(url, ":") {
 		if client.opts.Secure {
 			url = "https" + url
@@ -75,7 +88,7 @@ func (client *Client) NewRequest(method string, url string, body io.Reader) (*ht
 	return req, err;
 }
 
-func (client *Client) Get(url string) (resp *Response, err error) {
+func (client *client) Get(url string) (resp *Response, err error) {
 	req, err := client.NewRequest("GET", url, nil);
 	if err != nil {
 		return nil, err
@@ -86,7 +99,7 @@ func (client *Client) Get(url string) (resp *Response, err error) {
 	return (*Response)(htResp), err;
 }
 
-func (client *Client) Post(url string, bodyType string, body io.Reader) (resp *Response, err error) {
+func (client *client) Post(url string, bodyType string, body io.Reader) (resp *Response, err error) {
 	req, err := client.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, err

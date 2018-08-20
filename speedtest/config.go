@@ -30,7 +30,7 @@ type Config struct {
 	Times  ConfigTimes `xml:"times"`
 }
 
-func (client *Client) Log(format string, a ...interface{}) {
+func (client *client) Log(format string, a ...interface{}) {
 	if !client.opts.Quiet {
 		log.Printf(format, a...)
 	}
@@ -41,14 +41,14 @@ type ConfigRef struct {
 	Error  error
 }
 
-func (client *Client) Config() (*Config, error) {
+func (client *client) Config() (*Config, error) {
 	configChan := make(chan ConfigRef)
 	client.LoadConfig(configChan)
 	configRef := <-configChan
 	return configRef.Config, configRef.Error
 }
 
-func (client *Client) LoadConfig(ret chan ConfigRef) {
+func (client *client) LoadConfig(ret chan ConfigRef) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
@@ -64,7 +64,7 @@ func (client *Client) LoadConfig(ret chan ConfigRef) {
 	}()
 }
 
-func (client *Client) loadConfig() {
+func (client *client) loadConfig() {
 	client.Log("Retrieving speedtest.net configuration...")
 
 	result := ConfigRef{}
