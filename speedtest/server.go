@@ -21,7 +21,7 @@ type Server struct {
 	ID       ServerID `xml:"id,attr"`
 	URL2     string `xml:"url2,attr"`
 	Host     string `xml:"host,attr"`
-	client   *Client `xml:"-"`
+	client   Client `xml:"-"`
 	Distance float64 `xml:"-"`
 	Latency  time.Duration `xml:"-"`
 }
@@ -117,7 +117,7 @@ func (servers *Servers) append(other *Servers) *Servers {
 	return servers
 }
 
-func (servers *Servers) sort(client *Client, config *Config) {
+func (servers *Servers) sort(client Client, config *Config) {
 	for _, server := range servers.List {
 		server.client = client;
 		server.Distance = server.DistanceTo(config.Client.Coordinates)
@@ -146,14 +146,14 @@ var serverURLs = [...]string{
 
 var NoServersError error = errors.New("No servers available")
 
-func (client *Client) AllServers() (*Servers, error) {
+func (client *client) AllServers() (*Servers, error) {
 	serversChan := make(chan ServersRef)
 	client.LoadAllServers(serversChan)
 	serversRef := <-serversChan
 	return serversRef.Servers, serversRef.Error
 }
 
-func (client *Client) LoadAllServers(ret chan ServersRef) {
+func (client *client) LoadAllServers(ret chan ServersRef) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
@@ -169,7 +169,7 @@ func (client *Client) LoadAllServers(ret chan ServersRef) {
 	}()
 }
 
-func (client *Client) loadServers() {
+func (client *client) loadServers() {
 	configChan := make(chan ConfigRef)
 	client.LoadConfig(configChan);
 
@@ -204,7 +204,7 @@ func (client *Client) loadServers() {
 	client.allServers <- result
 }
 
-func (client *Client) loadServersFrom(url string, ret chan *Servers) {
+func (client *client) loadServersFrom(url string, ret chan *Servers) {
 	resp, err := client.Get(url)
 	if resp != nil {
 		url = resp.Request.URL.String()
@@ -220,14 +220,14 @@ func (client *Client) loadServersFrom(url string, ret chan *Servers) {
 	ret <- servers
 }
 
-func (client *Client) ClosestServers() (*Servers, error) {
+func (client *client) ClosestServers() (*Servers, error) {
 	serversChan := make(chan ServersRef)
 	client.LoadClosestServers(serversChan)
 	serversRef := <-serversChan
 	return serversRef.Servers, serversRef.Error
 }
 
-func (client *Client) LoadClosestServers(ret chan ServersRef) {
+func (client *client) LoadClosestServers(ret chan ServersRef) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
@@ -243,7 +243,7 @@ func (client *Client) LoadClosestServers(ret chan ServersRef) {
 	}()
 }
 
-func (client *Client) loadClosestServers() {
+func (client *client) loadClosestServers() {
 	serversChan := make(chan ServersRef)
 	client.LoadAllServers(serversChan)
 	serversRef := <-serversChan

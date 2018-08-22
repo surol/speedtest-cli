@@ -74,7 +74,7 @@ func (server *Server) measureLatency(errorLatency time.Duration) time.Duration {
 	}
 	if err != nil {
 		server.client.Log("[%s] Failed to detect latency: %v\n", url, err)
-		duration = errorLatency
+		return errorLatency
 	}
 	if resp.StatusCode != 200 {
 		server.client.Log("[%s] Invalid latency detection HTTP status: %d\n", url, resp.StatusCode)
