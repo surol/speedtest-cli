@@ -65,7 +65,7 @@ func reportSpeed(opts *speedtest.Opts, prefix string, speed int) {
 	}
 }
 
-func selectServer(opts *speedtest.Opts, client *speedtest.Client) (selected *speedtest.Server) {
+func selectServer(opts *speedtest.Opts, client speedtest.Client) (selected *speedtest.Server) {
 	if opts.Server != 0 {
 		servers, err := client.AllServers()
 		if err != nil {
