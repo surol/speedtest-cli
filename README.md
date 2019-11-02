@@ -1,3 +1,5 @@
+> This project is no longer maintained. Please consider using one of its [forks](https://github.com/surol/speedtest-cli/network/members)
+
 speedtest.net CLI
 =================
 
